@@ -71,9 +71,10 @@ def get_agenda(url):
 
 
 def parse_urls_from_file(filepath):
-    with open(filepath, "r"):
-        for i, line in enumerate(filepath):
-            url = line.replace("\n", "").strip()
+    with open(filepath, "r") as f:
+        for i, line in enumerate(f):
+            url = line.replace("\n", "")
+            print("Doing", url)
             handle_url(url)
 
 
@@ -135,6 +136,8 @@ def parse_transcription(transcription_path, output_path, agenda):
     segments = data["segments"]
     running_time = 0
     for agendapunt in agenda:
+        if not agendapunt.get("time"):
+            continue
         start = running_time
         end = running_time + time_string_to_seconds(agendapunt["time"])
         # Get all whisper extracted text between agendapunt start and end.
@@ -167,9 +170,12 @@ def handle_url(url):
     if not agenda:
         print(f"No agenda items could be found for {url}!")
         return
+    # if not agenda[0].get("time"):
+    #     print(f"Agenda for {url} has no timestamps!")
+    #     return
 
     # download_vergadering(url, video_path)
-    transcribe(video_path, transcription_path, args.mlx)
+    # transcribe(video_path, transcription_path, args.mlx)
     # os.remove(video_path)
     parse_transcription(transcription_path, final_path, agenda)
 
@@ -195,7 +201,7 @@ if __name__ == "__main__":
         exit()
 
     if args.file:
-        if args.file.endswith(".txt"):
+        if not args.file.endswith(".txt"):
             print("Please provide a txt file")
             exit()
         print("Retrieving information for file:", args.file)
