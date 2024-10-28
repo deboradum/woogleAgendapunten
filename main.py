@@ -40,21 +40,23 @@ def get_agenda(url):
     r = requests.get(url)
     bsObj = BeautifulSoup(r.content, "html.parser")
 
-    agenda_json = {}
+    agenda_json = []
     agenda_items = [li for li in bsObj.find_all("li", class_="agenda_item")]
     # print(agenda_items)
     for item in agenda_items:
         agenda_point = {}
         btn = item.find("button", class_="item_title")
         if not btn:
+            print("No button found")
             continue
-        span = btn.find("span", class_="item_prefix")
 
+        # span = btn.find("span", class_="item_prefix")
         # Skip sub agenda item (for now, perhaps)
-        if not span or not span.text.strip().endswith("."):
-            continue
+        # if not span or not span.text.strip().endswith("."):
+        #     print("Sub item")
+        #     continue
 
-        agenda = btn.get_text(strip=True)
+        agenda = btn.get_text(strip=True, separator=" ")
         agenda_point["agendaPoint"] = agenda
         time_span = item.find("span", class_="item_time")
         if time_span:
@@ -64,7 +66,7 @@ def get_agenda(url):
         agenda_json.append(agenda_point)
 
     print("Retrieved agenda")
-    print(agenda_json)
+
     return agenda_json
 
 
@@ -113,14 +115,45 @@ def transcribe(video_path, output_path, use_mlx):
     print(f"Transcribed {video_path}")
 
 
-def parse_transcription(transcription_path, output_path):
+def time_string_to_seconds(time_string):
+    hours, minutes, seconds = map(int, time_string.split(":"))
+    total_seconds = hours * 3600 + minutes * 60 + seconds
+
+    return total_seconds
+
+
+def parse_transcription(transcription_path, output_path, agenda):
     if os.path.isfile(output_path):
         print("vergadering already parsed.")
         return
 
     print(f"Parsing {transcription_path}")
+    agenda_and_text = []
+    data = None
+    with open(transcription_path, "r") as f:
+        data = json.load(f)
+    segments = data["segments"]
+    running_time = 0
+    for agendapunt in agenda:
+        start = running_time
+        end = running_time + time_string_to_seconds(agendapunt["time"])
+        # Get all whisper extracted text between agendapunt start and end.
+        texts = [segment["text"] for segment in segments if segment["start"] >= start and segment["start"] <= end]
+        agenda_and_text.append(
+            {
+                "agendapunt": agendapunt["agendaPoint"],
+                "start": start,
+                "end": end,
+                "text": "".join(texts),
+            }
+        )
+
+        running_time += time_string_to_seconds(agendapunt["time"])
+
+    with open(output_path, "w") as f:
+        json.dump(agenda_and_text, f)
+
     print(f"Parsed {transcription_path}")
-    return
 
 
 def handle_url(url):
@@ -135,10 +168,10 @@ def handle_url(url):
         print(f"No agenda items could be found for {url}!")
         return
 
-    download_vergadering(url, video_path)
+    # download_vergadering(url, video_path)
     transcribe(video_path, transcription_path, args.mlx)
-    os.remove(video_path)
-    parse_transcription(transcription_path, final_path)
+    # os.remove(video_path)
+    parse_transcription(transcription_path, final_path, agenda)
 
 
 if __name__ == "__main__":
