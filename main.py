@@ -1,8 +1,8 @@
 import argparse
 import requests
 import urllib
+import torch
 import json
-import uuid
 import os
 import re
 
@@ -28,6 +28,7 @@ def download_vergadering(url, filepath):
         for chunk in r.iter_content(chunk_size=1024 * 1024):
             if chunk:
                 f.write(chunk)
+    print(f"Downloaded {download_url}")
 
 
 def parse_urls_from_file(filepath):
@@ -39,6 +40,7 @@ def parse_urls_from_file(filepath):
 
 def transcribe_mlx(video_path, output_path):
     import mlx_whisper
+
     result = mlx_whisper.transcribe(
         video_path,
         path_or_hf_repo="mlx-community/whisper-large-v3-mlx",
@@ -46,33 +48,44 @@ def transcribe_mlx(video_path, output_path):
         **{"language": "nl", "task": "transcribe"},
     )
     with open(output_path, "w") as f:
-        json.dump(result, f)
+        json.dump(result, f, indent=4)
 
 
 def transcribe_torch(video_path, output_path):
+    import whisper
+
+    # 'base', 'small', 'medium' or 'large'
+    model = whisper.load_model("medium")
+    result = model.transcribe(video_path, language="nl")
 
     result = None
     with open(output_path, "w") as f:
-        json.dump(result, f)
+        json.dump(result, f, indent=4)
 
 
 def transcribe(video_path, output_path, use_mlx):
+    print(f"Transcribing {video_path}")
     if use_mlx:
         transcribe_mlx(video_path, output_path)
     else:
         transcribe_torch(video_path, output_path)
+    print(f"Transcribed {video_path}")
 
 
 def parse_transcription(transcription_path, output_path):
+    print(f"Parsing {transcription_path}")
+    print(f"Parsed {transcription_path}")
     return
 
 
 def handle_url(url):
-    video_path = f"{url}.mp4"
-    transcription_path = f"{url}_transcript.json"
-    final_path = f"{url}_final.json"
+    vergadering_code = url.split("/")[-1]
+    video_path = f"{vergadering_code}.mp4"
+    transcription_path = f"{vergadering_code}_transcript.json"
+    final_path = f"{vergadering_code}_final.json"
 
     download_vergadering(url, video_path)
+    # TODO: Agenda punten verzamelen
     transcribe(video_path, transcription_path, args.mlx)
     os.remove(video_path)
     parse_transcription(transcription_path, final_path)
