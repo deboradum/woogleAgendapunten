@@ -141,7 +141,7 @@ def parse_transcription(transcription_path, output_path, agenda):
         start = running_time
         end = running_time + time_string_to_seconds(agendapunt["time"])
         # Get all whisper extracted text between agendapunt start and end.
-        texts = [segment["text"] for segment in segments if segment["start"] >= start and segment["start"] <= end]
+        texts = [segment["text"].replace("...", "") for segment in segments if segment["start"] >= start and segment["start"] <= end]
         agenda_and_text.append(
             {
                 "agendapunt": agendapunt["agendaPoint"],
