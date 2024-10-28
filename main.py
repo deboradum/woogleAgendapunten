@@ -1,7 +1,6 @@
 import argparse
 import requests
 import urllib
-import torch
 import json
 import os
 import re
@@ -36,10 +35,12 @@ def download_vergadering(url, filepath):
 
 
 def get_agenda(url):
+    print("Retrieving agenda")
+
     r = requests.get(url)
     bsObj = BeautifulSoup(r.content, "html.parser")
 
-    vergadering_json = {}
+    agenda_json = {}
     agenda_items = [li for li in bsObj.find_all("li", class_="agenda_item")]
     # print(agenda_items)
     for item in agenda_items:
@@ -60,9 +61,11 @@ def get_agenda(url):
             time = time_span.text.strip().replace("tijdsduur:", "").strip()
             agenda_point["time"] = time
 
-        vergadering_json.append(agenda_point)
+        agenda_json.append(agenda_point)
 
-    print(vergadering_json)
+    print("Retrieved agenda")
+    print(agenda_json)
+    return agenda_json
 
 
 def parse_urls_from_file(filepath):
@@ -126,8 +129,13 @@ def handle_url(url):
     transcription_path = f"{vergadering_code}_transcript.json"
     final_path = f"{vergadering_code}_final.json"
 
+
+    agenda = get_agenda(url)
+    if not agenda:
+        print(f"No agenda items could be found for {url}!")
+        return
+
     download_vergadering(url, video_path)
-    # TODO: Agenda punten verzamelen
     transcribe(video_path, transcription_path, args.mlx)
     os.remove(video_path)
     parse_transcription(transcription_path, final_path)
