@@ -10,6 +10,10 @@ from bs4 import BeautifulSoup
 
 
 def download_vergadering(url, filepath):
+    if os.path.isfile(filepath):
+        print("Vergadering already downlaoded.")
+        return
+
     # r = requests.get(url)
     # For some reason request.get gave me 500, urllib works fine.
     r = urllib.request.urlopen(url)
@@ -29,6 +33,36 @@ def download_vergadering(url, filepath):
             if chunk:
                 f.write(chunk)
     print(f"Downloaded {download_url}")
+
+
+def get_agenda(url):
+    r = requests.get(url)
+    bsObj = BeautifulSoup(r.content, "html.parser")
+
+    vergadering_json = {}
+    agenda_items = [li for li in bsObj.find_all("li", class_="agenda_item")]
+    # print(agenda_items)
+    for item in agenda_items:
+        agenda_point = {}
+        btn = item.find("button", class_="item_title")
+        if not btn:
+            continue
+        span = btn.find("span", class_="item_prefix")
+
+        # Skip sub agenda item (for now, perhaps)
+        if not span or not span.text.strip().endswith("."):
+            continue
+
+        agenda = btn.get_text(strip=True)
+        agenda_point["agendaPoint"] = agenda
+        time_span = item.find("span", class_="item_time")
+        if time_span:
+            time = time_span.text.strip().replace("tijdsduur:", "").strip()
+            agenda_point["time"] = time
+
+        vergadering_json.append(agenda_point)
+
+    print(vergadering_json)
 
 
 def parse_urls_from_file(filepath):
@@ -64,6 +98,10 @@ def transcribe_torch(video_path, output_path):
 
 
 def transcribe(video_path, output_path, use_mlx):
+    if os.path.isfile(output_path):
+        print("Transcription already exists.")
+        return
+
     print(f"Transcribing {video_path}")
     if use_mlx:
         transcribe_mlx(video_path, output_path)
@@ -73,6 +111,10 @@ def transcribe(video_path, output_path, use_mlx):
 
 
 def parse_transcription(transcription_path, output_path):
+    if os.path.isfile(output_path):
+        print("vergadering already parsed.")
+        return
+
     print(f"Parsing {transcription_path}")
     print(f"Parsed {transcription_path}")
     return
