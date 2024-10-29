@@ -73,10 +73,12 @@ def get_agenda(url):
 def parse_urls_from_file(filepath):
     with open(filepath, "r") as f:
         for i, line in enumerate(f):
-            url = line.replace("\n", "")
-            print("Doing", url)
-            handle_url(url)
-
+            try:
+                url = line.replace("\n", "")
+                print("Doing", url)
+                handle_url(url)
+            except:
+                print("something went wrong with",url)
 
 def transcribe_mlx(video_path, output_path):
     import mlx_whisper
@@ -98,7 +100,7 @@ def transcribe_torch(video_path, output_path):
     model = whisper.load_model("medium")
     result = model.transcribe(video_path, language="nl")
 
-    result = None
+    #result = None
     with open(output_path, "w") as f:
         json.dump(result, f, indent=4)
 
