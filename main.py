@@ -100,7 +100,9 @@ def transcribe_torch(video_path, output_path):
     model = whisper.load_model("medium")
     result = model.transcribe(video_path, language="nl")
 
+
     #result = None
+ 
     with open(output_path, "w") as f:
         json.dump(result, f, indent=4)
 
